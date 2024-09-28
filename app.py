@@ -47,6 +47,7 @@ You will need to download three files:
 1. Contract PDF file
 2. Excel file for Borderaux
 3. Treaty Slip
+
 The borderaux and treaty slip documents are for the third quarter.
 """)
 
