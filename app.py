@@ -56,7 +56,7 @@ st.header("Upload Documents")
 
 pdf_directory = st.file_uploader("Upload the contract PDF file", type=["pdf"])
 excel_file = st.file_uploader("Upload the Excel file for Borderaux", type=["xlsx"])
-treaty_pdf_with_images = st.file_uploader("Upload the Treaty Slip PDF with Images", type=["pdf"])
+treaty_pdf_with_images = st.file_uploader("Upload the Treaty Slip PDF", type=["pdf"])
 
 # Step 2: Select quarter and year
 st.header("Select Quarter")
