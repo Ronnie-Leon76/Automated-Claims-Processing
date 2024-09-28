@@ -46,7 +46,8 @@ Before proceeding, please download the required files from the following Google 
 You will need to download three files:
 1. Contract PDF file
 2. Excel file for Borderaux
-3. Treaty Slip PDF with Images
+3. Treaty Slip
+The borderaux and treaty slip documents are for the third quarter.
 """)
 
 # Step 1: Upload three documents
