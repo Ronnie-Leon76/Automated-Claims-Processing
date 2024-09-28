@@ -48,7 +48,7 @@ You will need to download three files:
 2. Excel file for Borderaux
 3. Treaty Slip
 
-The borderaux and treaty slip documents are for the third quarter.
+The borderaux and treaty slip documents are for the third quarter of the year.
 """)
 
 # Step 1: Upload three documents
