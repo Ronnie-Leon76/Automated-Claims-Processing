@@ -28,7 +28,7 @@ redis==5.0.8
 scipy==1.14.1
 streamlit
 torch==2.2.2
-torchvision==2.2.2+cpu
+torchvision==2.2.2
 unstructured==0.15.7
 unstructured-client==0.25.5
 unstructured-inference==0.7.36
