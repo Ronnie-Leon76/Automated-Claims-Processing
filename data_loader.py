@@ -64,14 +64,14 @@ treaty_schema = {
                         "items": {
                             "type": "object",
                             "properties": {
-                                "category_number": {"type": "integer"},
+                                "category_number": {"type": ["integer", "null"]},
                                 "category_name": {"type": "string"},
-                                "limit": {"type": "integer"}
+                                "limit": {"type": ["integer", "null"]}
                             }
                         }
                     },
-                    "retention_percentage": {"type": "number"},
-                    "maximum_cession": {"type": "number"}
+                    "retention_percentage": {"type": ["number", "null"]},
+                    "maximum_cession": {"type": ["number", "null"]}
                 }
             }
         },
@@ -85,14 +85,14 @@ treaty_schema = {
                 }
             }
         },
-        "original_gross_rate": {"type": "number"},
+        "original_gross_rate": {"type": ["number", "null"]},
         "commission": {
             "type": "object",
             "properties": {
-                "commission_min": {"type": "number"},
-                "commission_max": {"type": "number"},
-                "loss_ratio_min": {"type": "number"},
-                "loss_ratio_max": {"type": "number"}
+                "commission_min": {"type": ["number", "null"]},
+                "commission_max": {"type": ["number", "null"]},
+                "loss_ratio_min": {"type": ["number", "null"]},
+                "loss_ratio_max": {"type": ["number", "null"]}
             }
         },
         "special_conditions": {
@@ -105,10 +105,10 @@ treaty_schema = {
                 }
             }
         },
-        "cash_loss_limit": {"type": "string"},
-        "accounts_settlement": {"type": "string"},
-        "currency": {"type": "string"},
-        "taxes": {"type": "string"},
+        "cash_loss_limit": {"type": ["string", "null"]},
+        "accounts_settlement": {"type": ["string", "null"]},
+        "currency": {"type": ["string", "null"]},
+        "taxes": {"type": ["string", "null"]},
         "law_and_jurisdiction": {
             "type": "object",
             "properties": {
@@ -126,8 +126,8 @@ treaty_schema = {
         "age_limit": {
             "type": "object",
             "properties": {
-                "new_policy_age_limit": {"type": "integer"},
-                "renewal_policy_age_limit": {"type": "integer"}
+                "new_policy_age_limit": {"type": ["integer", "null"]},
+                "renewal_policy_age_limit": {"type": ["integer", "null"]}
             }
         },
         "several_liability": {
@@ -141,7 +141,7 @@ treaty_schema = {
             "type": "object",
             "properties": {
                 "intermediary_name": {"type": "string"},
-                "brokerage_percentage": {"type": "number"}
+                "brokerage_percentage": {"type": ["number", "null"]}
             }
         },
         "reinsurer_participations": {
@@ -150,12 +150,12 @@ treaty_schema = {
                 "type": "object",
                 "properties": {
                     "reinsurer_name": {"type": "string"},
-                    "participation_percentage": {"type": "number"}
+                    "participation_percentage": {"type": ["number", "null"]}
                 }
             }
         }
     },
-    "required": ["reinsured", "start_date", "end_date", "treaty_type", "business_covered", "territorial_scope", "treaty_details", "reinsurer_participations", "original_gross_rate"]
+    "required": ["reinsured", "start_date", "end_date", "treaty_type", "business_covered", "territorial_scope", "treaty_details", "reinsurer_participations"]
 }
 
 
@@ -259,6 +259,14 @@ class GoogleAIModelWrapper(BaseLLM):
                 text = response.candidates[0].content.parts[0].text
                 try:
                     json_obj = json.loads(text)
+                    for key in treaty_schema["required"]:
+                        if key not in json_obj:
+                            if key == "exclusions":
+                                json_obj[key] = []
+                            elif key == "reinsurer_participations":
+                                json_obj[key] = []
+                            else:
+                                json_obj[key] = None
                     return json.dumps(json_obj)
                 except json.JSONDecodeError:
                     return text
@@ -319,18 +327,18 @@ def parse_date(date_str):
 # Map the JSON data to the Treaty Pydantic model
 def map_json_to_treaty(data):
     treaty = Treaty(
-        reinsured=data["reinsured"],
-        start_date=parse_date(data["start_date"]),
-        end_date=parse_date(data["end_date"]),
-        treaty_type=data["treaty_type"],
-        business_covered=data["business_covered"],
-        territorial_scope=data["territorial_scope"],
+        reinsured=data.get("reinsured", ""),
+        start_date=parse_date(data.get("start_date", "")),
+        end_date=parse_date(data.get("end_date", "")),
+        treaty_type=data.get("treaty_type", ""),
+        business_covered=data.get("business_covered", []),
+        territorial_scope=data.get("territorial_scope", ""),
         treaty_details=[
             TreatyDetail(
-                limits=[CategoryLimit(**limit) for limit in detail["limits"]],
-                retention_percentage=detail["retention_percentage"],
-                maximum_cession=detail["maximum_cession"]
-            ) for detail in data["treaty_details"]
+                limits=[CategoryLimit(**limit) for limit in detail.get("limits", [])],
+                retention_percentage=detail.get("retention_percentage"),
+                maximum_cession=detail.get("maximum_cession")
+            ) for detail in data.get("treaty_details", [])
         ],
         exclusions=[Exclusion(**exclusion) for exclusion in data.get("exclusions", [])],
         original_gross_rate=data.get("original_gross_rate"),
@@ -345,7 +353,7 @@ def map_json_to_treaty(data):
         age_limit=AgeLimit(**data["age_limit"]) if "age_limit" in data else None,
         several_liability=Liability(**data["several_liability"]) if "several_liability" in data else None,
         intermediary=Intermediary(**data["intermediary"]) if "intermediary" in data else None,
-        reinsurer_participations=[ReinsurerParticipation(**rp) for rp in data["reinsurer_participations"]]
+        reinsurer_participations=[ReinsurerParticipation(**rp) for rp in data.get("reinsurer_participations", [])]
     )
     return treaty
 
@@ -440,10 +448,21 @@ def extract_treaty_information_from_documents(
     
     try:
         output = rag_chain.invoke(documents_text)
+        print("Treaty output extracted")
+        treaty_object = map_json_to_treaty(output)
     except Exception as e:
-        print(f"An error occurred while invoking rag_chain: {e}")
-    print("Treaty output extracted")
-    treaty_object = map_json_to_treaty(output)
+        print(f"An error occurred while processing the treaty information: {e}")
+        print("Returning a default Treaty object")
+        treaty_object = Treaty(
+            reinsured="",
+            start_date=datetime.now(),
+            end_date=datetime.now(),
+            treaty_type="",
+            business_covered=[],
+            territorial_scope="",
+            treaty_details=[],
+            reinsurer_participations=[]
+        )
 
     # Process Excel file (Premium and Claims Borderaux)
     html_text = extract_elements_and_metadata_from_xlsx_workbook(excel_file)
