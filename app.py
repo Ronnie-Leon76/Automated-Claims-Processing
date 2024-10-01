@@ -90,6 +90,7 @@ if st.button("Process Claims"):
             # Generate cache keys based on file contents
             update_progress(0.1, "Generating cache keys...")
             cache_key = get_cache_key(pdf_directory, excel_file, treaty_pdf_with_images)
+            print(f"Cache key: {cache_key}")
             # pdf_key = get_cache_key(pdf_directory.getvalue())
             # excel_key = get_cache_key(excel_file.getvalue())
             # treaty_key = get_cache_key(treaty_pdf_with_images.getvalue())
@@ -127,7 +128,7 @@ if st.button("Process Claims"):
                 results = process_claims(borderaux_data.claims_borderaux, treaty_statement_information, treaty_object, quarter)
 
                 # Cache the results
-                cache_result(combined_key, results)
+                cache_result(cache_key, results)
 
                 # Clean up temporary files
                 os.remove(pdf_path)
@@ -149,7 +150,7 @@ if st.button("Process Claims"):
             st.header("Financial Summary")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric(label="Total Claims Paid", value=f"{results['total_claims_paid']:,.2f}")
+                st.metric(label="Total Claims that should be paid", value=f"{results['total_claims_paid']:,.2f}")
             with col2:
                 st.metric(label="Claim Limit", value=f"{results['claim_limit']:,.2f}")
             with col3:
@@ -162,7 +163,7 @@ if st.button("Process Claims"):
             fig = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
             
             # Pie chart for claims vs limit
-            fig.add_trace(go.Pie(labels=['Claims Paid', 'Remaining Limit'], 
+            fig.add_trace(go.Pie(labels=['Claims that should be paid', 'Remaining Limit'], 
                                 values=[results['total_claims_paid'], max(0, results['claim_limit'] - results['total_claims_paid'])],
                                 name="Claims vs Limit"), 1, 1)
             
