@@ -21,6 +21,8 @@ CACHE_TTL = 432000
 redis_client = redis.StrictRedis.from_url(REDIS_URL)
 
 def get_cache_key(file_contents):
+    if not isinstance(file_contents, bytes):
+        file_contents = str(file_contents).encode('utf-8')
     return hashlib.md5(file_contents).hexdigest()
 
 def cache_result(key, result):
@@ -81,7 +83,7 @@ if st.button("Process Claims"):
             excel_key = get_cache_key(excel_file.getvalue())
             treaty_key = get_cache_key(treaty_pdf_with_images.getvalue())
             
-            combined_key = get_cache_key(f"{pdf_key}-{excel_key}-{treaty_key}".encode())
+            combined_key = get_cache_key(f"{pdf_key}-{excel_key}-{treaty_key}")
 
             # Check if results are already cached
             cached_result = get_cached_result(combined_key)
