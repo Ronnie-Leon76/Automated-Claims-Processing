@@ -20,10 +20,20 @@ CACHE_TTL = 432000
 
 redis_client = redis.StrictRedis.from_url(REDIS_URL)
 
-def get_cache_key(file_contents):
-    if not isinstance(file_contents, bytes):
-        file_contents = str(file_contents).encode('utf-8')
-    return hashlib.md5(file_contents).hexdigest()
+def get_file_hash(file_object):
+    if file_object is None:
+        return None
+    file_object.seek(0)
+    file_content = file_object.read()
+    file_object.seek(0)
+    return hashlib.md5(file_content).hexdigest()
+
+def get_cache_key(pdf_file, excel_file, treaty_file):
+    pdf_hash = get_file_hash(pdf_file)
+    excel_hash = get_file_hash(excel_file)
+    treaty_hash = get_file_hash(treaty_file)
+    combined_hash = f"{pdf_hash}-{excel_hash}-{treaty_hash}"
+    return hashlib.md5(combined_hash.encode()).hexdigest()
 
 def cache_result(key, result):
     redis_client.setex(key, CACHE_TTL, json.dumps(result))
@@ -79,14 +89,15 @@ if st.button("Process Claims"):
 
             # Generate cache keys based on file contents
             update_progress(0.1, "Generating cache keys...")
-            pdf_key = get_cache_key(pdf_directory.getvalue())
-            excel_key = get_cache_key(excel_file.getvalue())
-            treaty_key = get_cache_key(treaty_pdf_with_images.getvalue())
+            cache_key = get_cache_key(pdf_directory, excel_file, treaty_pdf_with_images)
+            # pdf_key = get_cache_key(pdf_directory.getvalue())
+            # excel_key = get_cache_key(excel_file.getvalue())
+            # treaty_key = get_cache_key(treaty_pdf_with_images.getvalue())
             
-            combined_key = get_cache_key(f"{pdf_key}-{excel_key}-{treaty_key}")
+            # combined_key = get_cache_key(f"{pdf_key}-{excel_key}-{treaty_key}")
 
             # Check if results are already cached
-            cached_result = get_cached_result(combined_key)
+            cached_result = get_cached_result(cache_key)
             
             if cached_result:
                 update_progress(0.9, "Retrieved cached results...")
